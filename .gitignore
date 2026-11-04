@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+server/data/gallery/*.png
+server/data/gallery.json
+server/data/feedback.json
+.DS_Store
+
+# Arcade Classic is installed locally; its author restricts redistribution.
+public/fonts/arcadeclassic.ttf
