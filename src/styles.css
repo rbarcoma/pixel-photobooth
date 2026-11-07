@@ -119,7 +119,7 @@ button svg, .btn svg { flex-shrink: 0; }
 .sticker-categories button { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 /* Sticker controls follow the preview and stay out of exported images. */
 .sticker-canvas { position: relative; display: flex; justify-content: center; max-width: 100%; }
-.sticker-control-layer { position: absolute; left: 50%; top: 0; transform: translateX(-50%); pointer-events: none; }
+.sticker-control-layer { position: absolute; left: 50%; top: 0; transform: translateX(-50%); pointer-events: none; overflow: clip; }
 .sticker-selection { position: absolute; border: 2px dashed #f0679d; pointer-events: none; }
 .sticker-toolbar { position: absolute; display: flex; gap: 6px; transform: translate(-50%, -50%); pointer-events: auto; }
 .sticker-toolbar, .sticker-resize-handle { z-index: 2; }
@@ -132,6 +132,94 @@ button svg, .btn svg { flex-shrink: 0; }
 .sticker-inline-editor { position: absolute; z-index: 3; pointer-events: auto; padding: 14px; background: #fffafc; border: 2px solid #bd7e99; box-shadow: 3px 3px 0 #e9aac1; }
 .sticker-inline-editor input[type="range"] { display: block; width: 100%; margin: 8px 0 12px; accent-color: #e991b0; }
 .sticker-inline-editor input[type="range"]:last-child { margin-bottom: 0; }
+
+/* The current meme stays beside the live camera throughout each capture. */
+.camera-meme-pair { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(150px, 1fr); align-items: center; gap: 12px; }
+.capture-meme-reference { min-width: 0; padding: 12px; background: #fff8fb; border: 1px solid #f0e2e8; border-radius: 11px; }
+.capture-meme-heading h3 { margin: 0 0 4px; font-size: 14px; }
+.capture-meme-heading p { margin: 0 0 10px; color: #99849b; font-size: 11px; }
+.capture-meme-slots { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; margin-bottom: 12px; padding: 1px 4px 4px 1px; }
+.capture-meme-slots button { position: relative; min-width: 0; height: 36px; padding: 0; background: #fff; overflow: hidden; }
+.capture-meme-slots img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.capture-meme-slots span { position: absolute; left: 0; bottom: 0; padding: 0 4px; background: #51465bcc; color: #fff; font-family: var(--body); font-size: 10px; }
+.capture-meme-image { position: relative; aspect-ratio: 1; margin-bottom: 12px; background: #fff; overflow: hidden; }
+.capture-meme-image img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.capture-meme-reference > .btn { width: 100%; padding: 8px 5px; gap: 5px; font-size: 10px; }
+.capture-meme-categories { gap: 9px; padding: 2px 6px 6px 2px; }
+.capture-meme-library { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 4px 7px 7px 3px; overflow-x: hidden; }
+.capture-meme-library button { position: relative; min-width: 0; min-height: 0; }
+.capture-meme-library img { position: absolute; inset: 2px; width: calc(100% - 4px); height: calc(100% - 4px); }
+@media (max-width: 560px) {
+  .camera-meme-pair { grid-template-columns: minmax(0, 1.7fr) minmax(96px, 1fr); gap: 8px; }
+  .capture-meme-reference { padding: 8px; }
+  .capture-meme-heading h3 { font-size: 11px; }
+  .capture-meme-heading p { font-size: 10px; margin-bottom: 8px; }
+  .capture-meme-slots { gap: 4px; margin-bottom: 8px; }
+  .capture-meme-slots button { height: 28px; }
+  .capture-meme-slots span { font-size: 9px; padding: 0 2px; }
+  .capture-meme-image { margin-bottom: 8px; }
+  .capture-meme-reference > .btn { font-size: 8px; }
+  .capture-meme-reference > .btn svg { width: 12px; }
+}
+
+/* Portrait category cards keep the available booth styles together. */
+.layout-category-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  padding: 36px 0 48px;
+}
+.layout-category-item {
+  min-width: 0;
+  min-height: 470px;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 24px;
+  text-align: center;
+}
+.layout-category-item > div:nth-child(2) { flex: 0; }
+.layout-category-item .layout-cat-icon { width: 48px; height: 48px; }
+.layout-category-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 190px;
+  flex-shrink: 0;
+}
+.layout-category-preview > .layout-preview {
+  width: min(100px, 90%);
+  min-width: 0;
+  height: 180px;
+  transform: rotate(9deg);
+}
+.layout-category-preview > .layout-preview-meme { width: min(145px, 90%); transform: rotate(-8deg); }
+.layout-category-preview .layout-preview-photos { flex: 1; min-height: 0; grid-auto-rows: minmax(0, 1fr); }
+.layout-category-preview .layout-preview-photo { min-height: 0; aspect-ratio: auto; }
+.layout-category-item > .layout-cat-arrow, .layout-category-item > .soon-tag { margin-top: auto; }
+
+@media (max-width: 830px) {
+  .layout-category-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .layout-category-item.disabled-category {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    min-height: 0;
+    text-align: left;
+  }
+  .layout-category-item.disabled-category > .soon-tag { margin-top: 0; }
+}
+@media (max-width: 560px) {
+  .layout-category-list { gap: 12px; padding: 24px 0 32px; }
+  .layout-category-item { min-height: 400px; padding: 18px 12px; }
+  .layout-category-item .layout-cat-icon { width: 40px; height: 40px; }
+  .layout-category-item h2 { font-size: 17px; }
+  .layout-category-preview { height: 150px; }
+  .layout-category-preview > .layout-preview { height: 140px; }
+  .layout-category-item.disabled-category { grid-template-columns: auto minmax(0, 1fr); padding: 18px; }
+  .layout-category-item.disabled-category > .soon-tag { grid-column: 2; justify-self: start; }
+}
 .review-note > p { height: auto; min-height: 96px; max-height: 180px; overflow-y: auto; }
 .feedback-write-cta, .studio-topline { flex-wrap: wrap; }
 .footer-bottom span { flex-wrap: wrap; }

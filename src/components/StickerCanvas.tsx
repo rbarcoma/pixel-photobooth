@@ -75,7 +75,7 @@ export default function StickerCanvas({canvasRef,draft,selectedId,onSelect,onCha
  };
  const finish=(event:ReactPointerEvent<HTMLDivElement>)=>{
   const active=gesture.current;if(!active||active.pointerId!==event.pointerId)return;
-  skipClick.current=active.moved;gesture.current=null;
+  skipClick.current=active.mode!=='move'&&active.moved&&event.type!=='pointercancel';gesture.current=null;
   if(active.target.hasPointerCapture(event.pointerId))active.target.releasePointerCapture(event.pointerId);
  };
  const startControl=(event:ReactPointerEvent<HTMLButtonElement>,mode:'resize'|'rotate')=>{
