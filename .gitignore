@@ -1,6 +1,10 @@
 node_modules/
 dist/
 .env
+.env.*
+!.env.example
+.vercel/
+.coverage/
 server/data/gallery/*.png
 server/data/gallery.json
 server/data/feedback.json

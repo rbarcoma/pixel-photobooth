@@ -1,100 +1,74 @@
-# ✦ Pixel Booth
+# Pixel Booth
 
-A soft pastel, pixel-styled photobooth web application made with **React 19 + TypeScript + Vite** and a **Node.js / Express** backend. The meme and sticker collections are extracted and optimized from the four uploaded ZIP archives.
+The existing React 19 + TypeScript + Vite photobooth, with an Express API prepared for Vercel Functions, public Vercel Blob gallery photos, and Neon PostgreSQL metadata/feedback/likes.
 
-## Quick start
+**Start with [DEPLOYMENT.md](DEPLOYMENT.md)** for the exact Vercel settings, cloud provisioning, environment variables, schema migration, legacy-data migration, moderation commands and production verification. Preparation does not mean a production deployment has been completed.
 
-**Requirements:** Node.js 20 or newer; a modern Chrome, Edge, Firefox or Safari browser.
+## Development
+
+Use Node.js 24.x. Configure development cloud credentials in the ignored `.env.local` file; no production runtime storage uses local JSON/PNG files.
 
 ```bash
-cd pixel-booth
-npm install
+npm ci
+cp .env.example .env.local
+# Fill the required values using development-only cloud resources.
+npm run db:migrate
 npm run dev
 ```
 
-Open **http://localhost:5173**. The web UI runs on port **5173** and the persistent Node.js API runs on port **3001**. Both are started by `npm run dev`. Vite proxies `/api` calls to the API. Allow the browser to access your camera when asked. Browsers typically only enable camera access on **localhost or HTTPS**.
+The frontend uses `http://localhost:5173`, with `/api` proxied to the existing local API port `3001` or `PORT`. `API_PROXY_TARGET` can override the development proxy. `npm run build` generates `dist`; `npm run start` can still serve the built site and cloud-backed API together on the configured local port. Vercel instead serves `dist` and invokes `api/index.ts` without a listening server.
 
-### Production build
+## Existing features retained
+
+- Existing pixel/pastel design, animations, font files, navigation, portrait category cards and responsive styles.
+- Plain strip/grid layouts and Meme layouts; side-by-side meme references, per-photo meme selection and the existing meme categories.
+- Browser camera permission, mirrored camera capture, flip, automatic/manual capture, 3/5/10-second timers, retakes and PNG/JPEG/WEBP/GIF photo uploads.
+- Existing filters, frame colors, editable/hideable footer caption, independent date display, pixel sticker categories, PokéAPI Pikachu, and direct sticker drag/resize/rotate/edit/delete controls.
+- PNG exports, actual recorded-camera GIFs, upload-only GIF slideshows, browser printing, supported device file sharing, social links and clipboard flows.
+- Optional gallery save with the existing **Cancel** and **Submit & save** confirmation. Photos now upload directly to Blob without crossing the Function body-size limit.
+- Public gallery viewing/download/sharing and browser-owner/administrator-authorized deletion.
+- Feedback wall, ratings and persistent likes, with pending moderation by default, one stored like per browser/note, input validation and persistent rate limits.
+
+Camera frames, draft photos, editor state and GIF frames stay in browser memory until the user explicitly submits a final PNG to the public gallery. The application never automatically posts images to social platforms.
+
+## Verification
 
 ```bash
+npm test
+npm run check
 npm run build
-npm run start
+npm audit
 ```
 
-This serves the built React frontend and API together on **http://localhost:3001** (or the port set by `PORT`). To deploy publicly, use HTTPS and secure server storage; read the production precautions below first.
+The SQL/API tests use an isolated PostgreSQL engine and test photo adapter; they do not need real cloud credentials. The browser harness and real deployment smoke tests are documented in [DEPLOYMENT.md](DEPLOYMENT.md). Production is unverified until both its HTTPS browser features and backend/cloud writes pass.
 
-## User experience
+## Source layout
 
-1. **Landing page** with Home, How it works, Layouts, Gallery, Feedback, Instagram, and dedicated Privacy / Terms / Cookie pages.
-2. **Layout chooser:** Plain (2, 3, 4-strip, 2×2, 3×2), Meme (2×2, 3×2, 4×2 side-by-side photo + meme), and Coming Soon.
-3. **Photo session:** camera permission and mirrored live preview, auto capture or click to capture, 3/5/10-second timer, retake any slot, flip cameras when supported, or upload multiple PNG/JPEG/WEBP/GIF photos.
-4. **Decorate:** 7 filters (Original, B&W, Retro, Soft, Golden, Cool, Pixel), 35 draggable / rotatable / resizable uploaded pixel stickers, custom draggable text, selectable text color and size, capture date, 10 frame swatches or custom color, and 33 changeable memes organized into Animal / Animation / People.
-5. **Save:** PNG download, actual animated GIF built from sampled camera moments (or photo slideshow if only uploads), print-ready browser print dialog, native device file sharing where supported, and social links/manual upload instructions. The **Add to gallery** button opens a confirmation with **Cancel** and **Submit**.
-6. **Gallery:** saved PNGs and captions persist on the Node.js server, can be previewed, downloaded, shared as links (public deployments only), and deleted.
-7. **Feedback:** an empty prompt before the first review; afterwards, notes loop right-to-left. Visitors can submit a name, 1–5 stars, and comments, and like the notes.
+- `src/`: retained React pages/components/styles and browser photobooth/export logic.
+- `api/index.ts`: Vercel serverless entry point.
+- `server/app.ts`: shared Express REST API.
+- `server/handler.ts`: Vercel rewrite adapter.
+- `server/db/schema.sql`: persistent PostgreSQL schema.
+- `server/db/repository.ts`: parameterized queries and atomic likes/rate limits.
+- `server/blob.ts`: Vercel Blob storage adapter.
+- `server/security.ts`, `server/validation.ts`: session ownership, authorization, limits and validation.
+- `server/index.ts`: local standalone listener/static frontend only.
+- `scripts/`: migrations, moderation, font preparation and deployment smoke verification.
+- `tests/`: isolated API/routing and browser regression checks; excluded from Vercel uploads.
+- `public/`: existing stickers, memes, font and license files.
 
-## Project structure
+## Existing fonts and artwork
 
-```text
-pixel-booth/
-├── index.html                # React application HTML entry
-├── src/
-│   ├── main.tsx              # Browser routes
-│   ├── styles.css            # Theme and responsive styles
-│   ├── pages/                # Landing, chooser, capture, editor, gallery, feedback, policies
-│   ├── components/           # Shared header, footer, modal, previews
-│   ├── context/              # Photobooth session state
-│   ├── lib/                  # Canvas export, image processing, API, GIF, types
-│   ├── generated/assets.ts   # Asset manifest generated from ZIPs
-│   └── types/gifenc.d.ts      # TypeScript declarations for GIF encoder
-├── public/
-│   ├── assets/stickers/      # 35 optimized PNGs
-│   ├── assets/memes/         # 33 JPGs, animal / animation / people
-│   └── fonts/README.md      # How to enable Arcade Classic
-├── server/
-│   ├── index.ts              # Express REST API and static website
-│   └── data/                # Locally persisted gallery PNGs and feedback
-├── package.json
-├── vite.config.ts
-└── tsconfig.json
-```
+The existing Arcade Classic file is `public/fonts/arcadeclassic.ttf`, with its license text in `public/fonts/pizzadudedotdk.txt`. The existing project intentionally excludes that font from Git. A local Vercel CLI upload retains it through `.vercelignore`; Git builds must supply the same permitted asset through `ARCADE_FONT_URL` or their build checkout. The prebuild refuses a missing font so the design does not silently fall back.
 
-## About the requested Arcade Classic font
-
-The requested font is from https://www.1001fonts.com/arcadeclassic-font.html. That page describes it as **free for personal use, not commercial use**, and its author specifically **disallows distribution**. A copy is installed locally at `public/fonts/arcadeclassic.ttf` and excluded from Git. The original license is retained in `public/fonts/pizzadudedotdk.txt`. Arcade Classic is reserved for major website headings and the photo composition title, with a monospace fallback if the local file is missing or a glyph is unsupported. Body copy, navigation, controls, smaller titles and export captions use the original DM Sans font loaded from Google Fonts, with a sans-serif fallback. For a new checkout, download your own permitted copy from the source and save it at the same path. Obtain suitable permission before commercial use or distributing the font, including in a public deployment.
-
-## GIF, photo exports, printing and social shares
-
-- **PNG:** final decorated composition at native resolution (not a screenshot of the editor UI).
-- **GIF:** records up to 36 real, mirrored camera sample frames (~240ms per GIF frame) as you capture. If the whole session consisted of uploaded photos, creates an animated slideshow. GIFs are 320×260 pixels to keep downloads manageable. Animated GIFs are a live-moment souvenir, not an animation of the full static decorated print layout.
-- **Print:** opens a separate print-ready browser page with the final composition. You can print physically or use the browser's Save as PDF option. Popups must be allowed.
-- **Share:** native file sharing works on browsers/devices that implement the Web Share API. For Instagram, Facebook and Messenger, browser integrations generally **cannot automatically post/attach the image**. Download the PNG and upload it through the desired app. On a public deployment, Facebook can share a saved gallery link; localhost URLs are not accessible to other people.
-
-## API and data storage
-
-| Endpoint | Function |
-| --- | --- |
-| `GET /api/health` | API health check |
-| `GET /api/gallery` | List saved gallery photos |
-| `POST /api/gallery` | Confirmed PNG upload with caption/category/layout |
-| `GET /api/gallery/:id/image` | Retrieve a saved PNG |
-| `DELETE /api/gallery/:id` | Delete a saved photo |
-| `GET /api/feedback` | List posted feedback |
-| `POST /api/feedback` | Submit name, rating and message |
-| `POST /api/feedback/:id/like` | Increment a feedback note's like count |
-
-The API saves PNGs to `server/data/gallery/`, and JSON records to `server/data/gallery.json` and `server/data/feedback.json`. The application starts with an **empty gallery and feedback wall**. Temporary session photos and GIF frames are kept in browser memory and are not automatically uploaded.
-
-## Important before public launch
-
-This is a **fully featured local prototype**, not a security-hardened multi-user photo-hosting service. The public gallery demo has **no login or ownership authentication**, its delete endpoint is open to users, and feedback has **no moderation, rate limits or vote-abuse prevention**. Before production, add authentication and per-photo ownership, admin moderation/reporting, CSRF/rate limits, upload quota/storage limits, verified content deletion, safe backups, privacy contact and a retention policy. Use HTTPS, secure access to stored images, and obtain any necessary rights to redistribute the supplied stickers and meme pictures.
-
-The Privacy, Terms and Cookie pages are detailed **starter policy copy**, not legal advice. Add the real website operator's name, contact information and verified production data practices before public deployment.
+[Arcade Classic's source page](https://www.1001fonts.com/arcadeclassic-font.html) and the bundled license retain their existing terms; this project does not grant redistribution/commercial permissions. The original DM Sans loading, styles and bundled sticker/meme assets remain unchanged. Keep any required artwork and font permissions when deploying.
 
 ## Troubleshooting
 
-- **Camera unavailable?** Use `http://localhost:5173` locally or HTTPS when deployed, grant camera permission, check other apps using the webcam, or use Upload Photos instead.
-- **Gallery or feedback unavailable?** Confirm the API process is running on port 3001 (`npm run dev` starts it automatically).
-- **Print did not open?** Allow pop-ups for the website and click Print again.
-- **Font looks different?** Install your permitted Arcade Classic copy in `public/fonts/` following the font section above.
-- **Share won't attach to Instagram?** Use Download PNG and manually attach through Instagram or Messenger; this is a platform/browser restriction.
+- **API returns 503:** configure all required server environment variables, initialize the schema, check the Blob store is public, and verify the credentials target the intended environment.
+- **Upload returns 413:** gallery PNGs are limited to 13 MiB and must use the current direct-upload client. Function JSON requests are limited to 4 MiB.
+- **Write returns 403:** check `APP_ORIGIN`, allow essential ownership cookies, and verify the frontend calls the same-origin API. Only a saving browser or administrator can delete its photo.
+- **Feedback is not public:** the default is manual moderation; review and approve the note with the administrator CLI.
+- **A like does not increase again:** the server stores one like per browser/note and returns the existing count on repeated requests.
+- **Camera unavailable:** use localhost or the deployed HTTPS origin, allow camera access, check device availability, or use Upload Photos. No microphone permission is requested.
+- **Print/share unavailable:** allow print popups or use the existing PNG download/manual social upload fallback. Native file sharing depends on the browser/device.

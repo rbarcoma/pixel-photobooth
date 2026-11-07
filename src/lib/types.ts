@@ -21,8 +21,8 @@ export interface Draft {
   dateTaken:string;
   liveFrames:ImageData[];
 }
-export interface GalleryRecord { id:string; title:string; kind:BoothKind; layout:string; imageUrl:string; createdAt:string; }
-export interface FeedbackRecord {id:string; name:string; message:string; rating:number; likes:number; createdAt:string;}
+export interface GalleryRecord { id:string; title:string; kind:BoothKind; layout:string; imageUrl:string; createdAt:string; downloadUrl?:string; canDelete?:boolean; }
+export interface FeedbackRecord {id:string; name:string; message:string; rating:number; likes:number; createdAt:string; liked?:boolean; moderationStatus?:'pending'|'approved'|'rejected';}
 export interface LayoutInfo {id:BoothLayout; label:string; description:string; count:number; rows:number; cols:number;}
 export const plainLayouts:LayoutInfo[] = [
   {id:'plain-2',label:'2 strips',description:'Two sweet snapshots, one classic strip.',count:2,rows:2,cols:1},
