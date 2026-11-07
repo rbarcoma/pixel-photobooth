@@ -59,7 +59,7 @@ The SQL/API tests use an isolated PostgreSQL engine and test photo adapter; they
 
 ## Existing fonts and artwork
 
-The existing Arcade Classic file is `public/fonts/arcadeclassic.ttf`, with its license text in `public/fonts/pizzadudedotdk.txt`. The existing project intentionally excludes that font from Git. A local Vercel CLI upload retains it through `.vercelignore`; Git builds must supply the same permitted asset through `ARCADE_FONT_URL` or their build checkout. The prebuild refuses a missing font so the design does not silently fall back.
+The existing Arcade Classic file is `public/fonts/arcadeclassic.ttf`, with its license text in `public/fonts/pizzadudedotdk.txt`. It remains excluded from Git. Obtain the author's public webfont hosting/redistribution permission before publishing it, plus commercial permission when applicable. After permission, Git builds can provision the same exact asset through the build-only `ARCADE_FONT_BASE64` or `ARCADE_FONT_URL`; a local CLI deployment retains the file through `.vercelignore`. Prebuild and postbuild verify the original font, without replacing the typography. Use `npm run build` in Vercel so both hooks run. Follow the [font hosting and verification guide](./public/fonts/README.md).
 
 [Arcade Classic's source page](https://www.1001fonts.com/arcadeclassic-font.html) and the bundled license retain their existing terms; this project does not grant redistribution/commercial permissions. The original DM Sans loading, styles and bundled sticker/meme assets remain unchanged. Keep any required artwork and font permissions when deploying.
 

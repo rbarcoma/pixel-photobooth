@@ -13,7 +13,7 @@ async function api(path:string,method='GET',body?:unknown,admin=false){
  return response;
 }
 for(const path of ['/','/layouts','/layouts/meme','/booth','/decorate','/gallery','/feedback','/privacy','/terms','/cookies']){const response=await siteFetch(path);assert.equal(response.status,200,path);assert.match(response.headers.get('content-type')||'',/text\/html/,path);}
-const font=await siteFetch('/fonts/arcadeclassic.ttf');assert.equal(font.status,200,'Existing font is missing');assert.ok((await font.arrayBuffer()).byteLength>1000);
+const font=await siteFetch('/fonts/arcadeclassic.ttf');assert.equal(font.status,200,'Existing font is missing');assert.doesNotMatch(font.headers.get('content-type')||'',/text\/html/,'Font request returned the SPA document');const fontBytes=Buffer.from(await font.arrayBuffer());assert.ok(fontBytes.length>=12);assert.equal(fontBytes.readUInt32BE(0),0x00010000,'Font response is not TrueType data');
 const health=await api('/api/health');assert.equal(health.status,200,'Cloud storage health failed');assert.equal((await health.json()).ok,true);
 const session=await api('/api/session');assert.equal(session.status,200);assert.ok(cookie,'Ownership cookie missing');if(base.protocol==='https:')assert.match(session.headers.get('set-cookie')||'',/Secure/,'Production ownership cookie is not Secure');
 assert.equal((await api('/api/not-a-route')).status,404,'Unknown API path fell through to SPA');

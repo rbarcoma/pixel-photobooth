@@ -65,6 +65,7 @@ Set these in Vercel Project Settings → Environment Variables for **each enviro
 | `PORT` | Local only | Existing local API port, default `3001`. Vercel does not use `app.listen()`. |
 | `API_PROXY_TARGET` | Local only, optional | Vite development proxy override. Default is `http://localhost:${PORT or 3001}`. |
 | `ARCADE_FONT_URL` | Conditional, build only | HTTPS URL of your permitted copy of the existing Arcade Classic font, only when the deployment checkout does not already contain it. |
+| `ARCADE_FONT_BASE64` | Conditional, build only | Alternative to `ARCADE_FONT_URL`: Base64 of the exact existing TTF, after permission for public webfont hosting is obtained. Never use a `VITE_` prefix. |
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | Optional, verification tools only | An authorized deployment-protection bypass secret for testing a protected preview. Never expose it to frontend code. |
 
 Generate **three independent values**, one for each secret:
@@ -79,14 +80,16 @@ Do not use `VITE_` prefixes for any credentials. Vite exposes `VITE_*` values to
 
 ### Existing font and assets
 
-The local `public/fonts/arcadeclassic.ttf` is intentionally Git-ignored by the existing project because of its license restrictions. **A Git deployment will not receive that ignored file automatically.** The production prebuild now fails if the font is absent, rather than silently changing the design.
+The local `public/fonts/arcadeclassic.ttf` is intentionally Git-ignored by the existing project because of its license restrictions. **A Git deployment will not receive that ignored file automatically.** The production prebuild fails if the font is absent or differs from the existing asset; postbuild checks the copied asset in `dist`. Public webfont delivery requires the author's hosting/redistribution permission, and commercial use requires the applicable permission. The bundled license alone does not establish those rights. Do not deploy/upload the font while permission is unconfirmed.
 
-Choose one method:
+After obtaining permission, choose one method:
 
 - **Local CLI upload:** use `npx vercel@latest` from this checkout. `.vercelignore` excludes secrets, local data and tests while retaining the existing local font and public assets.
-- **Git integration:** make your permitted font available to the build through `ARCADE_FONT_URL`, or otherwise provision the same permitted font in the build checkout. The prebuild downloads and verifies the font only if it is missing. This does not grant any new license rights.
+- **Git integration:** configure `ARCADE_FONT_BASE64` or `ARCADE_FONT_URL` to provision your permitted font only when it is missing. The Base64 option avoids needing a publicly hosted build source; it still requires permission for the resulting webfont distribution. Configure only one source. Keep the Vercel build command `npm run build`, including its hooks.
 
 Keep `public/fonts/pizzadudedotdk.txt` and the other existing assets. No font or image is replaced by this deployment change.
+
+See [the font hosting guide](./public/fonts/README.md) for the exact clipboard/environment-variable steps, observed production 404, licensing requirements and `npm run check:font -- https://YOUR-DOMAIN` verification. Redeploy after configuring the font source. A successful build alone does not confirm that the current production deployment serves it.
 
 ## 4. Initialize PostgreSQL before serving requests
 

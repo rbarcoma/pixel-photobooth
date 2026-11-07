@@ -12,6 +12,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "check": "tsc --noEmit",
     "prebuild": "node scripts/prepare-assets.mjs",
+    "postbuild": "node scripts/check-font.mjs",
+    "check:font": "node scripts/check-font.mjs",
     "db:migrate": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/migrate.ts",
     "data:migrate": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/migrate-local.ts",
     "moderate": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/moderate.ts",
