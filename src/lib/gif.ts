@@ -16,7 +16,7 @@ export async function makeSessionGif(draft:Draft):Promise<Blob>{
  const frames=live.length?live.length:Math.max(imageSources.length,1);
  for(let index=0;index<frames;index++){
   ctx.fillStyle=draft.frameColor;ctx.fillRect(0,0,width,height);
-  ctx.fillStyle='#59475f';ctx.textAlign='center';ctx.font=`13px ${BODY_FONT_FAMILY}`;ctx.fillText('✦ PIXEL BOOTH MOMENTS ✦',width/2,22);
+  ctx.fillStyle='#59475f';ctx.textAlign='center';ctx.font=`13px ${BODY_FONT_FAMILY}`;ctx.fillText('PIXEL BOOTH MOMENTS',width/2,22);
   if(live.length){
    const frame=live[index];const videoCanvas=document.createElement('canvas');videoCanvas.width=frame.width;videoCanvas.height=frame.height;
    videoCanvas.getContext('2d')!.putImageData(frame,0,0);
@@ -24,7 +24,7 @@ export async function makeSessionGif(draft:Draft):Promise<Blob>{
   }else if(imageSources.length){
    try{drawCover(ctx,await loadImage(imageSources[index%imageSources.length]),{x:10,y:35,w:300,h:196});}catch{ /* Keep frame background. */ }
   }
-  ctx.fillStyle='#59475f';ctx.font=`12px ${BODY_FONT_FAMILY}`;ctx.fillText(`${index+1} / ${frames}  ♥  smile!`,width/2,250);
+  ctx.fillStyle='#59475f';ctx.font=`12px ${BODY_FONT_FAMILY}`;ctx.fillText(`${index+1} / ${frames}  smile!`,width/2,250);
   const rgba=ctx.getImageData(0,0,width,height).data;
   const palette=quantize(rgba,64,{format:'rgb444'});
   const pixels=applyPalette(rgba,palette,'rgb444');

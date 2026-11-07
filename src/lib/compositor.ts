@@ -62,7 +62,7 @@ export async function renderComposition(canvas:HTMLCanvasElement,draft:Draft,sel
  const dark=['#3d3b4d','#24202c'].includes(draft.frameColor.toLowerCase());
  const ink=dark?'#fffaf5':'#65566c';
  ctx.textAlign='center';ctx.fillStyle=ink;ctx.font=`22px ${PIXEL_FONT_FAMILY}`;
- ctx.fillText('PIXEL  BOOTH  ★',canvas.width/2,39);
+ ctx.fillText('PIXEL  BOOTH',canvas.width/2,39);
  for(let i=0;i<composition.frameRects.length;i++){
   const rect=composition.frameRects[i];const src=draft.shots[i];
   ctx.fillStyle='#ffffff';roundedRect(ctx,rect.x-6,rect.y-6,rect.w+12,rect.h+12,4);ctx.fill();
@@ -79,7 +79,6 @@ export async function renderComposition(canvas:HTMLCanvasElement,draft:Draft,sel
  ctx.textAlign='center';ctx.fillStyle=ink;ctx.font=`18px ${BODY_FONT_FAMILY}`;
  ctx.fillText('a little moment, forever yours',canvas.width/2,composition.footerY+44);
  if(draft.showDate){const label=new Date(draft.dateTaken).toLocaleDateString('en-US',{month:'short',day:'2-digit',year:'numeric'}).toUpperCase();ctx.font=`16px ${BODY_FONT_FAMILY}`;ctx.fillText(label,canvas.width/2,composition.footerY+75);}
- ctx.font=`22px ${BODY_FONT_FAMILY}`;ctx.fillText('✦    ♡    ✦',canvas.width/2,composition.height-17);
 }
 async function drawSticker(ctx:CanvasRenderingContext2D,sticker:StickerOverlay,layout:Composition,selectedId?:string){
  try{
