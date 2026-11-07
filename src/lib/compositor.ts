@@ -1,13 +1,13 @@
-import type {Draft,BoothLayout,FilterName,StickerOverlay,TextOverlay} from './types';
-import {getLayoutInfo} from './types';
-import {BODY_FONT_FAMILY,PIXEL_FONT_FAMILY,loadBodyFont,loadPixelFont} from './fonts';
+import type {Draft,BoothLayout,FilterName,StickerOverlay} from './types';
+import {DEFAULT_CAPTION,getLayoutInfo} from './types';
+import {BODY_FONT_FAMILY,loadBodyFont} from './fonts';
 
 export interface Composition {width:number;height:number;frameRects:{x:number;y:number;w:number;h:number}[];memeRects:{x:number;y:number;w:number;h:number}[];footerY:number;}
 export function getComposition(layout:BoothLayout):Composition{
  const info=getLayoutInfo(layout);
  const isMeme=layout.startsWith('meme-');
  const isStrip=!isMeme&&info.cols===1;
- const margin=isStrip?39:42, gap=isStrip?19:23, header=isStrip?62:78, footer=isStrip?105:128;
+ const margin=isStrip?39:42, gap=isStrip?19:23, header=margin, footer=isStrip?105:128;
  const cellW=isStrip?360:isMeme?365:info.cols===3?315:415;
  const cellH=isStrip?292:isMeme?305:info.cols===3?335:385;
  const cols=isMeme?2:info.cols;
@@ -22,9 +22,14 @@ export function getComposition(layout:BoothLayout):Composition{
  return {width,height,frameRects,memeRects,footerY:height-footer};
 }
 const cache=new Map<string,Promise<HTMLImageElement>>();
+const imageAspectRatios=new Map<string,number>();
 export function loadImage(src:string):Promise<HTMLImageElement>{
- if(!cache.has(src)) cache.set(src,new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>{cache.delete(src);reject(Error(`Could not load image: ${src}`));};img.src=src;}));
+ if(!cache.has(src)) cache.set(src,new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>{imageAspectRatios.set(src,img.naturalHeight/img.naturalWidth);resolve(img);};img.onerror=()=>{cache.delete(src);reject(Error(`Could not load image: ${src}`));};img.src=src;}));
  return cache.get(src)!;
+}
+export function getStickerRect(sticker:StickerOverlay,layout:Composition){
+ const w=sticker.size*layout.width;
+ return {x:sticker.x*layout.width,y:sticker.y*layout.height,w,h:w*(imageAspectRatios.get(sticker.src)??1)};
 }
 export function drawCover(ctx:CanvasRenderingContext2D,img:CanvasImageSource,rect:{x:number;y:number;w:number;h:number},mirror=false){
  const dimensions=img as HTMLImageElement;const iw=dimensions.naturalWidth||dimensions.width,ih=dimensions.naturalHeight||dimensions.height;
@@ -46,14 +51,13 @@ function drawPhoto(ctx:CanvasRenderingContext2D,img:HTMLImageElement,rect:{x:num
  }else drawCover(ctx,img,rect);
  ctx.restore();
 }
-function roundedRect(ctx:CanvasRenderingContext2D,x:number,y:number,w:number,h:number,r:number){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
 function drawPlaceholder(ctx:CanvasRenderingContext2D,rect:{x:number;y:number;w:number;h:number},index:number){
  ctx.fillStyle='#fffaf5';ctx.fillRect(rect.x,rect.y,rect.w,rect.h);
  ctx.fillStyle='#eee6e2';ctx.fillRect(rect.x+rect.w/2-18,rect.y+rect.h/2-30,36,36);
  ctx.fillStyle='#afa2ab';ctx.textAlign='center';ctx.font=`18px ${BODY_FONT_FAMILY}`;ctx.fillText(`PHOTO ${index+1}`,rect.x+rect.w/2,rect.y+rect.h/2+42);
 }
 export async function renderComposition(canvas:HTMLCanvasElement,draft:Draft,selectedId?:string){
- await Promise.all([loadPixelFont(),loadBodyFont()]);
+ await loadBodyFont();
  const composition=getComposition(draft.layout);
  canvas.width=composition.width;canvas.height=composition.height;
  const ctx=canvas.getContext('2d');if(!ctx)throw Error('Canvas is not available.');
@@ -61,49 +65,37 @@ export async function renderComposition(canvas:HTMLCanvasElement,draft:Draft,sel
  ctx.fillStyle=draft.frameColor;ctx.fillRect(0,0,canvas.width,canvas.height);
  const dark=['#3d3b4d','#24202c'].includes(draft.frameColor.toLowerCase());
  const ink=dark?'#fffaf5':'#65566c';
- ctx.textAlign='center';ctx.fillStyle=ink;ctx.font=`22px ${PIXEL_FONT_FAMILY}`;
- ctx.fillText('PIXEL  BOOTH',canvas.width/2,39);
  for(let i=0;i<composition.frameRects.length;i++){
   const rect=composition.frameRects[i];const src=draft.shots[i];
-  ctx.fillStyle='#ffffff';roundedRect(ctx,rect.x-6,rect.y-6,rect.w+12,rect.h+12,4);ctx.fill();
   if(src){try{drawPhoto(ctx,await loadImage(src),rect,draft.filter);}catch{drawPlaceholder(ctx,rect,i);}}else drawPlaceholder(ctx,rect,i);
   if(draft.kind==='meme'){
    const memeRect=composition.memeRects[i];const memeSrc=draft.memeImages[i];
-   ctx.fillStyle='#ffffff';roundedRect(ctx,memeRect.x-6,memeRect.y-6,memeRect.w+12,memeRect.h+12,4);ctx.fill();
    if(memeSrc){try{drawPhoto(ctx,await loadImage(memeSrc),memeRect,draft.filter);}catch{drawPlaceholder(ctx,memeRect,i);}}else drawPlaceholder(ctx,memeRect,i);
   }
  }
- // All stickers and text are positioned by canvas-relative coordinates so previews and exports match.
+ // Stickers use canvas-relative coordinates so previews and exports match.
  for(const sticker of draft.stickers)await drawSticker(ctx,sticker,composition,selectedId);
- for(const overlay of draft.texts)drawText(ctx,overlay,composition,selectedId);
  ctx.textAlign='center';ctx.fillStyle=ink;ctx.font=`18px ${BODY_FONT_FAMILY}`;
- ctx.fillText('a little moment, forever yours',canvas.width/2,composition.footerY+44);
+ const caption=(draft.caption??DEFAULT_CAPTION).trim();
+ if((draft.showCaption??true)&&caption)ctx.fillText(caption,canvas.width/2,composition.footerY+44,canvas.width*.86);
  if(draft.showDate){const label=new Date(draft.dateTaken).toLocaleDateString('en-US',{month:'short',day:'2-digit',year:'numeric'}).toUpperCase();ctx.font=`16px ${BODY_FONT_FAMILY}`;ctx.fillText(label,canvas.width/2,composition.footerY+75);}
 }
 async function drawSticker(ctx:CanvasRenderingContext2D,sticker:StickerOverlay,layout:Composition,selectedId?:string){
  try{
-  const img=await loadImage(sticker.src);const w=sticker.size*layout.width;const h=w*(img.naturalHeight/img.naturalWidth);const x=sticker.x*layout.width,y=sticker.y*layout.height;
+  const img=await loadImage(sticker.src);const {x,y,w,h}=getStickerRect(sticker,layout);
   ctx.save();ctx.translate(x,y);ctx.rotate(sticker.rotation*Math.PI/180);ctx.drawImage(img,-w/2,-h/2,w,h);
   if(selectedId===sticker.id){ctx.setLineDash([12,8]);ctx.strokeStyle='#f0679d';ctx.lineWidth=4;ctx.strokeRect(-w/2,-h/2,w,h);}
   ctx.restore();
  }catch{/* Skip a missing sticker without losing the rest of the photo. */}
 }
-function drawText(ctx:CanvasRenderingContext2D,item:TextOverlay,layout:Composition,selectedId?:string){
- const x=item.x*layout.width,y=item.y*layout.height;
- ctx.save();ctx.translate(x,y);ctx.rotate(item.rotation*Math.PI/180);
- ctx.font=`${item.size}px ${BODY_FONT_FAMILY}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';ctx.lineWidth=4;ctx.strokeStyle='#ffffff';ctx.strokeText(item.value,0,0,layout.width*.86);ctx.fillStyle=item.color;ctx.fillText(item.value,0,0,layout.width*.86);
- if(selectedId===item.id){const w=Math.min(ctx.measureText(item.value).width,layout.width*.86);ctx.strokeStyle='#f0679d';ctx.lineWidth=3;ctx.setLineDash([10,7]);ctx.strokeRect(-w/2-12,-item.size/2-12,w+24,item.size+24);}
- ctx.restore();
-}
 export function identifyOverlay(draft:Draft,x:number,y:number):string|null{
  const layout=getComposition(draft.layout);
- for(const item of [...draft.texts].reverse()){
-  const w=Math.min(item.value.length*item.size*.78,layout.width*.86)/layout.width,h=(item.size+30)/layout.height;
-  if(Math.abs(x-item.x)<w/2+.02&&Math.abs(y-item.y)<h/2+.02)return item.id;
- }
  for(const item of [...draft.stickers].reverse()){
-  const w=item.size,h=item.size*layout.width/layout.height;
-  if(Math.abs(x-item.x)<w/2+.02&&Math.abs(y-item.y)<h/2+.02)return item.id;
+  const rect=getStickerRect(item,layout);const angle=item.rotation*Math.PI/180;
+  const dx=x*layout.width-rect.x,dy=y*layout.height-rect.y;
+  const localX=dx*Math.cos(angle)+dy*Math.sin(angle),localY=-dx*Math.sin(angle)+dy*Math.cos(angle);
+  const padding=layout.width*.02;
+  if(Math.abs(localX)<=rect.w/2+padding&&Math.abs(localY)<=rect.h/2+padding)return item.id;
  }
  return null;
 }

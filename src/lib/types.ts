@@ -5,7 +5,6 @@ export type BoothLayout = PlainLayout | MemeLayout;
 export type FilterName = 'original'|'bnw'|'retro'|'soft'|'warm'|'cool'|'pixel';
 export type CaptureMode = 'auto'|'click';
 export interface StickerOverlay {id:string; src:string; x:number; y:number; size:number; rotation:number;}
-export interface TextOverlay {id:string; value:string; x:number; y:number; size:number; color:string; rotation:number;}
 export interface Draft {
   kind:BoothKind;
   layout:BoothLayout;
@@ -16,7 +15,8 @@ export interface Draft {
   filter:FilterName;
   frameColor:string;
   stickers:StickerOverlay[];
-  texts:TextOverlay[];
+  caption:string;
+  showCaption:boolean;
   showDate:boolean;
   dateTaken:string;
   liveFrames:ImageData[];
@@ -37,6 +37,7 @@ export const memeLayouts:LayoutInfo[] = [
   {id:'meme-4x2',label:'4 × 2',description:'4 photos + 4 meme reactions.',count:4,rows:4,cols:2}
 ];
 export const getLayoutInfo = (layout: BoothLayout) => [...plainLayouts,...memeLayouts].find(item => item.id === layout)!;
+export const DEFAULT_CAPTION='a little moment, forever yours';
 export const frameColors = ['#ffd7e5','#fff5dc','#dcd4ff','#cceadd','#b9d9fa','#faf0e8','#3d3b4d','#ffffff','#fac7b4','#d6f2ef'];
 export const filters:{id:FilterName;label:string;description:string}[] = [
  {id:'original',label:'Original',description:'All natural'},
@@ -48,5 +49,5 @@ export const filters:{id:FilterName;label:string;description:string}[] = [
  {id:'pixel',label:'Pixel',description:'Chunky pixels'}
 ];
 export function createDraft(kind:BoothKind='plain',layout:BoothLayout='plain-3'):Draft {
- return {kind,layout,mode:'auto',timer:3,shots:Array(getLayoutInfo(layout).count).fill(null),memeImages:[],filter:'original',frameColor:'#ffd7e5',stickers:[],texts:[],showDate:true,dateTaken:new Date().toISOString(),liveFrames:[]};
+ return {kind,layout,mode:'auto',timer:3,shots:Array(getLayoutInfo(layout).count).fill(null),memeImages:[],filter:'original',frameColor:'#ffd7e5',stickers:[],caption:DEFAULT_CAPTION,showCaption:true,showDate:true,dateTaken:new Date().toISOString(),liveFrames:[]};
 }

@@ -20,7 +20,7 @@ export default function StickerPicker({onAdd,selectedSrc}:StickerPickerProps){
  return <>
   <h3>Pixel stickers </h3>
   <p className="panel-caption">Tap to add. Then drag the sticker anywhere on your photo.</p>
-  <div className="meme-categories" role="group" aria-label="Sticker categories">
+  <div className="meme-categories sticker-categories" role="group" aria-label="Sticker categories">
    {stickerCategories.map(item=><button type="button" key={item} className={category===item?'active':''} aria-pressed={category===item} onClick={()=>setCategory(item)}>{item}</button>)}
   </div>
   {category==='Pokémon'&&pokemonStatus!=='ready'&&<p className="panel-caption" role="status">{pokemonStatus==='loading'?'Loading Pikachu from PokéAPI…':'PokéAPI is unavailable. Using the local Pikachu sticker.'}</p>}
