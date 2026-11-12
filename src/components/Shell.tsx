@@ -1,10 +1,10 @@
 import {useEffect,useState,type ReactNode} from 'react';
 import {Link,NavLink,useLocation} from 'react-router-dom';
-import {ArrowUpRight,Camera,Menu,X} from 'lucide-react';
+import {ArrowUpRight,Menu,X} from 'lucide-react';
 import {SocialLinks} from './SocialLinks';
 
 const routes=[['/','Home'],['/how-it-works','How it works'],['/layouts','Layouts'],['/gallery','Gallery'],['/feedback','Feedback']];
-export function Logo(){return <Link to="/" className="logo" aria-label="Pixel Booth home"><span className="logo-icon"><Camera size={19} strokeWidth={2.5}/></span><span>PIXEL <span className="logo-accent">BOOTH</span></span></Link>}
+export function Logo(){return <Link to="/" className="logo" aria-label="Pixel Booth home"><img className="logo-wordmark" src="/assets/branding/pixbooth-logo.png" alt="PIXBOOTH" width="240" height="44"/></Link>}
 export function Header(){
  const [open,setOpen]=useState(false);const location=useLocation();
  useEffect(()=>setOpen(false),[location.pathname]);
