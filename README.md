@@ -1,22 +1,20 @@
 # Pixel Booth
 
-The existing React 19 + TypeScript + Vite photobooth, with an Express API prepared for Vercel Functions, public Vercel Blob gallery photos, and Neon PostgreSQL metadata/feedback/likes.
+The React 19 + TypeScript + Vite photobooth, with an Express API supporting local MySQL and local gallery photos, or Vercel Functions with Neon PostgreSQL and Vercel Blob.
 
-**Start with [DEPLOYMENT.md](DEPLOYMENT.md)** for the exact Vercel settings, cloud provisioning, environment variables, schema migration, legacy-data migration, moderation commands and production verification. Preparation does not mean a production deployment has been completed.
+**Start with [LOCAL_SETUP.md](LOCAL_SETUP.md)** for local MySQL, or [DEPLOYMENT.md](DEPLOYMENT.md) for Vercel hosting, cloud provisioning and production verification. Local setup does not deploy the application.
 
 ## Development
 
-Use Node.js 24.x. Configure development cloud credentials in the ignored `.env.local` file; no production runtime storage uses local JSON/PNG files.
+Use Node.js 24.x and Docker Desktop for local MySQL. See [LOCAL_SETUP.md](LOCAL_SETUP.md) for an existing MySQL server, data import and troubleshooting.
 
 ```bash
-npm ci
-cp .env.example .env.local
-# Fill the required values using development-only cloud resources.
-npm run db:migrate
+npm install
+npm run setup:local
 npm run dev
 ```
 
-The frontend uses `http://localhost:5173`, with `/api` proxied to the existing local API port `3001` or `PORT`. `API_PROXY_TARGET` can override the development proxy. `npm run build` generates `dist`; `npm run start` can still serve the built site and cloud-backed API together on the configured local port. Vercel instead serves `dist` and invokes `api/index.ts` without a listening server.
+The frontend uses `http://localhost:5173`, with `/api` proxied to API port `3001` or `PORT`. MySQL runs on `127.0.0.1:3307` with a persistent Docker volume, and PNGs are stored in `server/data/photos/`. Setup generates ignored local credentials and uses automatic feedback publication. `API_PROXY_TARGET` can override the development proxy. `npm run build` generates `dist`; `npm run start` serves the built site with the configured API. Vercel instead serves `dist` and invokes `api/index.ts` without a listening server.
 
 ## Existing features retained
 
@@ -25,7 +23,7 @@ The frontend uses `http://localhost:5173`, with `/api` proxied to the existing l
 - Browser camera permission, mirrored camera capture, flip, automatic/manual capture, 3/5/10-second timers, retakes and PNG/JPEG/WEBP/GIF photo uploads.
 - Existing filters, frame colors, editable/hideable footer caption, independent date display, pixel sticker categories, PokéAPI Pikachu, and direct sticker drag/resize/rotate/edit/delete controls.
 - PNG exports, actual recorded-camera GIFs, upload-only GIF slideshows, browser printing, supported device file sharing, social links and clipboard flows.
-- Optional gallery save with the existing **Cancel** and **Submit & save** confirmation. Photos now upload directly to Blob without crossing the Function body-size limit.
+- Optional gallery save with the existing **Cancel** and **Submit & save** confirmation. Photos upload to local disk or directly to Blob, according to server configuration.
 - Public gallery viewing/download/sharing and browser-owner/administrator-authorized deletion.
 - Feedback wall, ratings and persistent likes, with pending moderation by default, one stored like per browser/note, input validation and persistent rate limits.
 
@@ -48,9 +46,10 @@ The SQL/API tests use an isolated PostgreSQL engine and test photo adapter; they
 - `api/index.ts`: Vercel serverless entry point.
 - `server/app.ts`: shared Express REST API.
 - `server/handler.ts`: Vercel rewrite adapter.
-- `server/db/schema.sql`: persistent PostgreSQL schema.
+- `server/db/schema.sql`, `server/db/schema.mysql.sql`: PostgreSQL and MySQL schemas.
+- `server/db/mysql.ts`: MySQL queries, connection pool and transactional likes/rate limits.
 - `server/db/repository.ts`: parameterized queries and atomic likes/rate limits.
-- `server/blob.ts`: Vercel Blob storage adapter.
+- `server/blob.ts`, `server/local-storage.ts`: Vercel Blob and local photo storage adapters.
 - `server/security.ts`, `server/validation.ts`: session ownership, authorization, limits and validation.
 - `server/index.ts`: local standalone listener/static frontend only.
 - `scripts/`: migrations, moderation, font preparation and deployment smoke verification.
@@ -65,7 +64,7 @@ The existing Arcade Classic file is `public/fonts/arcadeclassic.ttf`, with its l
 
 ## Troubleshooting
 
-- **API returns 503:** configure all required server environment variables, initialize the schema, check the Blob store is public, and verify the credentials target the intended environment.
+- **Local API returns 503:** start Docker Desktop, run `npm run setup:local`, and restart `npm run dev`. For cloud storage, follow the environment/schema steps in `DEPLOYMENT.md`.
 - **Upload returns 413:** gallery PNGs are limited to 13 MiB and must use the current direct-upload client. Function JSON requests are limited to 4 MiB.
 - **Write returns 403:** check `APP_ORIGIN`, allow essential ownership cookies, and verify the frontend calls the same-origin API. Only a saving browser or administrator can delete its photo.
 - **Feedback is not public:** the default is manual moderation; review and approve the note with the administrator CLI.

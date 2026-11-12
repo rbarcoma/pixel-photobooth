@@ -1,5 +1,7 @@
 # Pixel Booth on Vercel
 
+**For local MySQL development, follow [LOCAL_SETUP.md](LOCAL_SETUP.md) or run `npm run setup:local` then `npm run dev`.** The cloud resources below are only needed for the Vercel/Neon/Blob configuration. Use `PHOTO_STORAGE=vercel-blob` in Vercel; local photo storage requires persistent disk.
+
 This checkout is prepared for Vercel, Vercel Blob and Neon PostgreSQL. **No production deployment has been performed or verified by this preparation.** A successful local build or isolated test is not evidence that production credentials, cloud permissions, camera access or persistent writes work. Complete the production verification below before calling the deployment complete.
 
 The React application, CSS, components, assets, camera pipeline and browser-side exports are retained. The Express API runs as a Vercel Node.js function, and optional local `npm run start` still serves the built frontend with that same API. Runtime gallery/feedback storage no longer writes JSON or photos to the local filesystem.

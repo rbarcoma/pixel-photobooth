@@ -1,0 +1,21 @@
+name: pixel-booth
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-3307}:3306"
+    environment:
+      MYSQL_DATABASE: pixel_booth
+      MYSQL_USER: pixel_booth
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Run npm run setup:local first}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Run npm run setup:local first}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql -h 127.0.0.1 -u pixel_booth -D pixel_booth -e 'SELECT 1' >/dev/null 2>&1"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+volumes:
+  mysql_data:

@@ -56,6 +56,6 @@ export class Repository {
  }
  async moderate(status:string){return await this.query('SELECT * FROM feedback WHERE status=$1 ORDER BY created_at ASC LIMIT 100',[status]) as FeedbackRow[];}
  async setFeedbackStatus(id:string,status:string){return (await this.query('UPDATE feedback SET status=$2 WHERE id=$1 RETURNING *',[id,status]))[0] as FeedbackRow|undefined;}
- async removeFeedback(id:string){return (await this.query('DELETE FROM feedback WHERE id=$1 RETURNING id',[id]))[0];}
+ async removeFeedback(id:string):Promise<Row|undefined>{return (await this.query('DELETE FROM feedback WHERE id=$1 RETURNING id',[id]))[0];}
  async feedbackById(id:string){return (await this.query('SELECT * FROM feedback WHERE id=$1',[id]))[0] as FeedbackRow|undefined;}
 }

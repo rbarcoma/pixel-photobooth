@@ -1,7 +1,8 @@
 import {assets} from '../generated/assets';
 import {loadImage} from './compositor';
+import {minecraftStickers} from './minecraft-stickers';
 
-export const stickerCategories=['All','Animals','Flowers','Pokémon','Food & Drinks','Characters','Extras'] as const;
+export const stickerCategories=['All','Animals','Flowers','Pokémon','Minecraft','Food & Drinks','Characters','Extras'] as const;
 export type StickerCategory=typeof stickerCategories[number];
 
 const categoryById={
@@ -17,7 +18,7 @@ const categoryById={
  'strawberry-cat':'Animals',sword:'Extras',tulips:'Flowers',
 } satisfies Record<typeof assets.stickers[number]['id'],Exclude<StickerCategory,'All'>>;
 
-export const stickers=assets.stickers.map(item=>({...item,category:categoryById[item.id]}));
+export const stickers=[...assets.stickers.map(item=>({...item,category:categoryById[item.id]})),...minecraftStickers];
 
 interface PokemonResponse {
  name:string;

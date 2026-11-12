@@ -1,7 +1,8 @@
 import type {FeedbackRecord,GalleryRecord} from './types';
 
 class ApiClientError extends Error {constructor(message:string,public status:number){super(message);}}
-let sessionPromise:Promise<{ok:boolean;maxPhotoBytes:number}>|undefined;
+type Session={ok:boolean;maxPhotoBytes:number;photoStorage:'local'|'vercel-blob'};
+let sessionPromise:Promise<Session>|undefined;
 async function request<T>(url:string,init?:RequestInit):Promise<{data:T;response:Response}>{
  let response:Response;
  try{response=await fetch(url,{...init,credentials:'same-origin',headers:{'Content-Type':'application/json','X-Pixel-Booth':'1',...init?.headers}});}
@@ -11,7 +12,7 @@ async function request<T>(url:string,init?:RequestInit):Promise<{data:T;response
  return {data:data as T,response};
 }
 function ensureSession(){
- return sessionPromise??=request<{ok:boolean;maxPhotoBytes:number}>('/api/session').then(result=>result.data).catch(error=>{sessionPromise=undefined;throw error;});
+ return sessionPromise??=request<Session>('/api/session').then(result=>result.data).catch(error=>{sessionPromise=undefined;throw error;});
 }
 async function json<T>(url:string,init?:RequestInit):Promise<T>{await ensureSession();return (await request<T>(url,init)).data;}
 async function listAll<T extends {id:string}>(url:string):Promise<T[]>{
@@ -31,8 +32,12 @@ export const galleryApi={
   const image=await fetch(input.dataUrl).then(response=>response.blob());
   if(image.type!=='image/png'||image.size>session.maxPhotoBytes)throw new Error('Gallery photos must be PNG images up to 13 MB.');
   const prepared=await json<{uploadId:string;pathname:string}>('/api/gallery/prepare',{method:'POST',body:JSON.stringify({title:input.title,kind:input.kind,layout:input.layout})});
-  const {upload}=await import('@vercel/blob/client');
-  await upload(prepared.pathname,image,{access:'public',contentType:'image/png',handleUploadUrl:'/api/gallery/upload',clientPayload:JSON.stringify({uploadId:prepared.uploadId}),headers:{'X-Pixel-Booth':'1'}});
+  if(session.photoStorage==='local'){
+   await request(`/api/gallery/${encodeURIComponent(prepared.uploadId)}/upload`,{method:'POST',body:image,headers:{'Content-Type':'image/png'}});
+  }else{
+   const {upload}=await import('@vercel/blob/client');
+   await upload(prepared.pathname,image,{access:'public',contentType:'image/png',handleUploadUrl:'/api/gallery/upload',clientPayload:JSON.stringify({uploadId:prepared.uploadId}),headers:{'X-Pixel-Booth':'1'}});
+  }
   for(let attempt=0;;attempt++){
    try{return await json<GalleryRecord>('/api/gallery',{method:'POST',body:JSON.stringify({uploadId:prepared.uploadId})});}
    catch(error){if(!(error instanceof ApiClientError)||![0,409,503].includes(error.status)||attempt>=2)throw error;await new Promise(resolve=>setTimeout(resolve,300*(attempt+1)));}

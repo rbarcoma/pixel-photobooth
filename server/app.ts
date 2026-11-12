@@ -3,8 +3,9 @@ import {createHash,randomUUID} from 'node:crypto';
 import {handleUpload} from '@vercel/blob/client';
 import {z} from 'zod';
 import {ApiError,getConfig,MAX_PHOTO_BYTES,UUID,type Config} from './config.js';
-import {Repository,neonQuery,type GalleryRow,type FeedbackRow,type Cursor} from './db/repository.js';
-import {vercelStorage,type PhotoStorage} from './blob.js';
+import {type Repository,type GalleryRow,type FeedbackRow,type Cursor} from './db/repository.js';
+import {type PhotoStorage} from './blob.js';
+import {createRepository,createStorage} from './runtime.js';
 import {hasBearer,guardWrite,isAdmin,limit,requireAdmin,session,visitor} from './security.js';
 import {decodeDataUrl,feedbackSchema,metadataSchema,validatePng} from './validation.js';
 
@@ -25,7 +26,7 @@ function page<T extends {created_at:string|Date;id:string}>(rows:T[],res:Respons
 const asyncRoute=(handler:(req:Request,res:Response)=>Promise<unknown>)=>(req:Request,res:Response,next:NextFunction)=>{void handler(req,res).catch(next);};
 export function createApp(injected?:Dependencies){
  const app=express();let dependencies=injected;
- const runtime=()=>dependencies??=(function(){const config=getConfig();return {config,repo:new Repository(neonQuery(config.databaseUrl)),storage:vercelStorage(config.blobToken)};})();
+ const runtime=()=>dependencies??=(function(){const config=getConfig();return {config,repo:createRepository(config),storage:createStorage(config)};})();
  app.disable('x-powered-by');
  app.use('/api',(_req,res,next)=>{res.set({'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'});next();});
  // Reject unauthorized writes before parsing potentially large request bodies.
@@ -49,11 +50,11 @@ export function createApp(injected?:Dependencies){
  app.use('/api',express.json({limit:'4mb',strict:true}));
  app.get('/api/session',asyncRoute(async(req,res)=>{
   const {config,repo}=runtime();await limit(req,res,repo,config,'session',60,600);
-  session(req,res,config);res.json({ok:true,maxPhotoBytes:MAX_PHOTO_BYTES});
+  session(req,res,config);res.json({ok:true,maxPhotoBytes:MAX_PHOTO_BYTES,photoStorage:config.photoStorage});
  }));
  app.get('/api/health',asyncRoute(async(req,res)=>{
   const {config,repo,storage}=runtime();await limit(req,res,repo,config,'health',20,60);await repo.health();await storage.health();
-  res.json({ok:true,service:'Pixel Booth',database:'postgresql',photos:'vercel-blob'});
+  res.json({ok:true,service:'Pixel Booth',database:config.database,photos:config.photoStorage});
  }));
  app.get('/api/gallery',asyncRoute(async(req,res)=>{
   const {config,repo}=runtime();await limit(req,res,repo,config,'read',600,60);
@@ -67,6 +68,7 @@ export function createApp(injected?:Dependencies){
  }));
  app.post('/api/gallery/upload',asyncRoute(async(req,res)=>{
   const {config,repo}=runtime();const owner=guardWrite(req,config);await limit(req,res,repo,config,'upload-token',30,3600,owner);
+  if(config.photoStorage==='local')throw new ApiError(400,'Use the local photo upload endpoint.');
   const body=z.object({type:z.literal('blob.generate-client-token'),payload:z.object({pathname:z.string().max(100),clientPayload:z.string().max(256),multipart:z.boolean().default(false)})}).parse(req.body);
   // Completion is finalized by POST /api/gallery, so local development needs no public webhook tunnel.
   const result=await handleUpload({request:req,body,token:config.blobToken,onBeforeGenerateToken:async(pathname,clientPayload)=>{
@@ -77,6 +79,18 @@ export function createApp(injected?:Dependencies){
    return {allowedContentTypes:['image/png'],maximumSizeInBytes:MAX_PHOTO_BYTES,addRandomSuffix:false,allowOverwrite:false,cacheControlMaxAge:60,validUntil:Math.min(Date.now()+10*60_000,new Date(intent.expires_at).getTime())};
   }});
   res.json(result);
+ }));
+ // Raw uploads keep the 13 MiB photo limit without expanding PNGs into JSON.
+ app.post('/api/gallery/:id/upload',express.raw({type:'image/png',limit:MAX_PHOTO_BYTES}),asyncRoute(async(req,res)=>{
+  const {config,repo,storage}=runtime();
+  if(config.photoStorage!=='local')throw new ApiError(404,'Local photo uploads are disabled.');
+  const owner=guardWrite(req,config),id=UUID.parse(req.params.id);
+  await limit(req,res,repo,config,'upload-token',30,3600,owner);
+  const intent=await repo.authorizeUpload(id,owner,`gallery/${id}.png`);
+  if(!intent)throw new ApiError(403,'This upload is expired, already used, or belongs to another browser.');
+  if(!Buffer.isBuffer(req.body))throw new ApiError(400,'Upload a PNG image.');
+  await validatePng(req.body);await storage.put(intent.pathname,req.body);
+  res.status(201).json({ok:true});
  }));
  app.post('/api/gallery',asyncRoute(async(req,res)=>{
   const {config,repo,storage}=runtime();const owner=guardWrite(req,config);
@@ -115,6 +129,10 @@ export function createApp(injected?:Dependencies){
   const id=UUID.parse(req.params.id),row=await repo.gallery(id);
   if(!row||row.deleted_at)throw new ApiError(404,'Photo not found.');
   const blob=await storage.head(row.blob_path);
+  if(config.photoStorage==='local'){
+   if(req.query.download==='1')res.attachment(`pixel-booth-${id}.png`);
+   res.type('png').send(await storage.read(blob));return;
+  }
   // A redirect preserves the existing image route without proxying large photos through a Function.
   res.redirect(307,req.query.download==='1'?blob.downloadUrl:blob.url);
  }));
